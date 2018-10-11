@@ -1,0 +1,273 @@
+def displayAndList(miembros, restriccion):
+    lista = []
+    i = 1
+    if restriccion == 3: # Ordenamos la lista para los intervalos
+        listaIntervalos = []
+        for elemento in miembros:
+            listaIntervalos.append(elemento)
+        listaIntervalos.sort()
+        claves = listaIntervalos
+    else:
+        claves = miembros
+    for item in claves:
+        if restriccion == 0: # Distrito
+            if len(item) == 0:
+                print(str(i) + "\t--Indefinido--")
+            else:
+                print(str(i) + "\t" + item)
+        elif restriccion == 1: # Tipo de actividad
+            if len(item) == 0:
+                print(str(i) + "\t--Indefinido--")
+            else:
+                print(str(i) + "\t" + item[23:])
+        elif restriccion == 2: # Tipo de audiencia
+            if len(item) != 0:
+                print(str(i) + "\t" + item[9:])
+        elif restriccion == 3: # Intervalos de horarios
+            print(str(i) + "\t" + ("0" if item < 10 else "") + str(item) + ":00-"
+                  + ("23:59" if item == 23 else ("0" if item + 1 < 10 else "") 
+                     + str(item + 1) + ":00"))
+        if restriccion != 2 or len(item) != 0: # No mostramos el tipo de audiencia vacia ni lo aniadimos a la lista
+            lista.append(item) # Aniadimos los elementos de 'claves' en la lista
+            i = i + 1 
+    return lista
+
+def displayActividad(campos):
+    i = 1
+    print("\t- Informacion del evento:")
+    for item in campos:
+        if item == "":
+            item = "--Indefinido--"
+        if i == 1:
+            print("\t\t" + str(i) + ".\tTitulo: " + item)
+        elif i == 2:
+            print("\t\t" + str(i) + ".\tFecha de inicio - Fecha de finalizacion: " + item)
+        elif i == 3:
+            print("\t\t" + str(i) + ".\tDias de la semana: " + item) 
+        elif i == 4:
+            print("\t\t" + str(i) + ".\tDias excluidos: " + item)
+        elif i == 5:
+            print("\t\t" + str(i) + ".\tHora: " + item)
+        elif i == 6:
+            print("\t\t" + str(i) + ".\tDescripcion: " + item)
+        elif i == 7:
+            print("\t\t" + str(i) + ".\tNombre de instalacion: " + item)
+        elif i == 8:
+            print("\t\t" + str(i) + ".\tLatitud: " + item)
+        elif i == 9:
+            print("\t\t" + str(i) + ".\tLongitud: " + item)
+        elif i == 10: # Tipo de actividad
+            print("\t\t" + str(i) + ".\tTipo de actividad: " + item[23:])
+        elif i == 11: # Tipo/s de audiencia
+            audienciasSeparadas = item.split(",")
+            string = ""
+            for cadena in audienciasSeparadas:
+                string = string + cadena[9:] + "/" # Para un display mas friendly
+            print("\t\t" + str(i) + ".\tAudiencia: " + (string[:len(string) - 1] if item != "--Indefinido--" else item))
+        i = i + 1
+
+def checkCorrectness(lista, caso):
+    inputCorrecto = False
+    while not inputCorrecto:
+        elemento = input('\nIntroduce el numero del '+ caso + ": ")
+        try:
+            if int(elemento) > 0:
+                elemento = lista[int(elemento) - 1]
+                inputCorrecto = True
+            else:
+                print("\nError. Introduce un numero positivo.")
+        except:
+            print("\nError. Introduce un numero correcto.") # Necesitamos numeros
+    return elemento
+
+def rellenarLista(linea):
+    lista = []
+    lista.append(linea[1])                                             # Titulo
+    lista.append(linea[7] + " - " + linea[8])                          # Fecha inicio y fin
+    lista.append(linea[5])                                             # DIAS-SEMANA
+    lista.append(linea[6])                                             # DIAS-EXCLUIDOS
+    lista.append(linea[9])                                             # Hora
+    lista.append(linea[10])                                            # Description
+    lista.append(linea[15])                                            # NOMBRE-INSTALACION
+    lista.append(linea[18])                                            # Latitud
+    lista.append(linea[19])                                            # Longitud
+    lista.append(linea[21])                                            # Tipo actividad
+    lista.append(linea[22])                                            # Tipo audiencia
+   
+    return lista
+
+def leerAlmacenar(entrada):
+    distritos = {}
+    i = 0
+    for linea in entrada:
+        if i != 0: # Omitir primera linea
+            audienciasString = linea[22].split(",")
+            hora = int(linea[9].split(":")[0])
+            if distritos.get(linea[20]) == None:
+                # No existe el distrito de esta actividad.  
+                audiencias = {}
+                for aud in audienciasString:
+                    listaCampos = rellenarLista(linea)
+                    listaActividades = []
+                    listaActividades.append(listaCampos)
+                    horarios = {}
+                    horarios[hora] = listaActividades
+                    audiencias[aud] = horarios
+                tipoActividad = {}
+                tipoActividad[linea[21]] = audiencias
+                distritos[linea[20]] = tipoActividad
+            else:
+                # Existe el distrito de esta actividad.
+                if distritos[linea[20]].get(linea[21]) == None:
+                    # No existe el tipo de actividad de esta actividad en este distrito.
+                    audiencias = {}
+                    for aud in audienciasString:
+                        listaCampos = rellenarLista(linea)
+                        listaActividades = []
+                        listaActividades.append(listaCampos)
+                        horarios = {}
+                        horarios[hora] = listaActividades
+                        audiencias[aud] = horarios
+                    distritos[linea[20]][linea[21]] = audiencias
+                else:
+                    # Existe el tipo de actividad de esta actividad en este distrito.
+                    for aud in audienciasString:
+                        if distritos[linea[20]][linea[21]].get(aud) == None:
+                            # No existe el tipo de audiencia de esta actividad en este distrito y este tipo de actividad.
+                            listaCampos = rellenarLista(linea)
+                            listaActividades = []
+                            listaActividades.append(listaCampos)
+                            horarios = {}
+                            horarios[hora] = listaActividades
+                            distritos[linea[20]][linea[21]][aud] = horarios
+                        else:
+                            # Existe el tipo de audiencia de esta actividad en este distrito y este tipo de actividad.
+                            if distritos[linea[20]][linea[21]][aud].get(hora) == None:
+                                # No existe otra actividad del mismo tipo de audiencia, tipo de actividad y distrito con este horario.
+                                listaCampos = rellenarLista(linea)
+                                listaActividades = []
+                                listaActividades.append(listaCampos)
+                                distritos[linea[20]][linea[21]][aud][hora] = listaActividades # ESTA LINEA LO METE PARA EL PRIMER AUD Y PARA TODOS LOS SIGUIENTES
+                            else:
+                                # Existe otra actividad del mismo tipo de audiencia, tipo de actividad y distrito con este horario.
+                                listaCampos = rellenarLista(linea)
+                                distritos[linea[20]][linea[21]][aud][hora].append(listaCampos)
+        i = i + 1
+    return distritos
+
+def juntarMapaHorarios(mapa, distrito, actividad, audiencia):    
+    # Necesitamos juntar en un mismo mapa las actividades con horarios en el mismo intervalo de
+    # una hora tanto del tipo de audiencia introducido como del tipo de audiencia no especificado
+    mapaFinal = mapa[distrito][actividad][audiencia].copy()
+    if mapa[distrito][actividad].get("") != None:
+        for item in mapa[distrito][actividad][""]:
+            if mapaFinal.get(item) == None:
+                mapaFinal[item] = mapa[distrito][actividad][""][item]
+            else:
+                for evento in mapa[distrito][actividad][""][item]:
+                    mapaFinal[item].append(evento)
+    return mapaFinal
+
+def busqueda(mapa):
+    print("Distritos almacenados:\n")
+
+    lista = displayAndList(mapa.keys(), 0) # Ensenia las posibilidades y las guarda en una lista
+
+    distrito = checkCorrectness(lista, "distrito"); # Pide el num hasta que sea un formato correcto
+
+    print("\nTipos de actividades almacenadas para el distrito " + distrito + ":\n")
+
+    lista = displayAndList(mapa[distrito].keys(), 1) 
+
+    actividad = checkCorrectness(lista, "tipo de actividad")
+    
+    if len(mapa[distrito][actividad].keys()) != 1 or mapa[distrito][actividad].get("") == None:
+        print("\nTipos de audiencia para el tipo de actividad " + actividad[23:] + " para el distrito " + distrito + ".\n")
+
+        lista = displayAndList(mapa[distrito][actividad].keys(), 2) 
+    
+        audiencia = checkCorrectness(lista, "tipo de audiencia")
+    
+        print("\nEstos son los horarios para el tipo de audiencia " + audiencia[9:] 
+              + " para el tipo de actividad " + actividad[23:] + " para el distrito " + distrito + ":\n")
+    
+        mapaFinal = juntarMapaHorarios(mapa, distrito, actividad, audiencia)
+    else: # Cuando no existe un tipo de audiencia especificado. El usuario no tendra que elegir tipo de audiencia.
+        print("\nNo hay tipos de audiencia especificados para el tipo de actividad " + actividad[23:] 
+              + " para el distrito " + distrito + ". Estos son los horarios disponibles:\n")
+        
+        mapaFinal = mapa[distrito][actividad][""]
+    
+    lista = displayAndList(mapaFinal.keys(), 3)
+        
+    hora = checkCorrectness(lista, "horario")
+    
+    ejercicioTres(mapaFinal[hora])
+             
+def numeroCorrecto(caso, restriccion):
+    inputCorrecto = False
+    while not inputCorrecto:
+        elemento = input('\nIntroduce '+ caso + ": ")
+        numero = float(elemento)
+        try:
+            if numero < 0 and restriccion == 1: # Restriccion = 1 --> Debe ser un numero positivo
+                print("\nError. Introduce un numero positivo.")
+            else:
+                inputCorrecto = True
+        except:
+            print("\nError. Introduce un numero correcto.") # Necesitamos numeros
+    return numero
+
+import math
+def haversine(lat1, lon1, lat2, lon2):
+    rad=math.pi/180
+    dlat=lat2-lat1
+    dlon=lon2-lon1
+    R=6372.795477598
+    a=(math.sin(rad*dlat/2))**2 + math.cos(rad*lat1)*math.cos(rad*lat2)*(math.sin(rad*dlon/2))**2
+    distancia=2*R*math.asin(math.sqrt(a))
+    return distancia
+
+import json
+def ejercicioDos(centroCultural):
+    leer = json.loads(open('CentrosCulturales.json',encoding="utf8").read()) # Objeto empleado (da json)
+    encontrado = False
+    for item in leer["@graph"]:
+        if item["title"] == centroCultural:
+            encontrado = True
+            print("\t- Datos del centro cultural:")
+            print("\t\t1.\tCalle: " + item["address"]["street-address"])
+            print("\t\t2.\tDistrito postal: " + item["address"]["postal-code"])
+            print("\t\t3.\tDescripcion del lugar: " + item["organization"]["organization-desc"])
+            print("\t\t4.\tAccesibilidad: " + item["organization"]["accesibility"])
+            print("\t\t5.\tServicios: " + item["organization"]["services"])
+    if encontrado == False:
+        print("\t- No se ha encontrado informacion sobre el centro cultural.")        
+    
+def ejercicioTres(listaActividades):
+    latitud = numeroCorrecto("tu latitud", 0)
+    longitud = numeroCorrecto("tu longitud", 0)
+    distanciaUsuario = numeroCorrecto("la distancia en Km", 1)
+    print("\n------------------------------------------------\nAPLICANDO FILTROS...\n------------------------------------------------\n")
+    i = 1
+    for item in listaActividades:
+        dist = haversine(latitud, longitud,  float(item[7]), float(item[8]))  # Calcula las distancias (funcion facilitada)
+        if (dist < distanciaUsuario) : # Solo en caso de que se cumpla la condicion de la distancia
+            print("- Actividad " + str(i) + ":\n")
+            print("\t- Distancia = " + str(dist) + " Km\n") # Mostrar la distancia entre el usuario y la actividad
+            displayActividad(item)
+            print("")
+            ejercicioDos(item[6])
+            print("\n------------------------------------------------\n")
+            i = i + 1
+    if i == 1:
+        print("No existen actividades con los criterios introducidos.")
+
+import csv
+csvarchivo = open('Agenda.csv',encoding="utf8",errors='ignore')
+entrada = csv.reader(csvarchivo, delimiter=";")
+mapaDistritos = leerAlmacenar(entrada) # Almacena todo en una estructura de diccionarios 
+busqueda(mapaDistritos)
+
+# TODO
+# Ordenar intervalos por intervalos
