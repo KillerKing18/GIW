@@ -20,19 +20,81 @@ collection = db['usuarios']
 
 @get('/find_users')
 def find_users():
-    	# Todas las combinaciones de name, surname y/o birthdate
-    	# http://localhost:8080/find_users?name=Luz
+    # Todas las combinaciones de name, surname y/o birthdate
+    # http://localhost:8080/find_users?name=Luz
 	# http://localhost:8080/find_users?name=Luz&surname=Romero
-        # http://localhost:8080/find_users?name=Luz&surname=Romero&birthdate=2006-08-14
-	name = "NULL"
-	surname = "NULL"
-	birthdate = "NULL"
-	name = request.headers.get("/find_users?", headers={"content-type":"name"})
-	surname = request.headers.get('surname')
-	print(name)
-	#result = collection.find({name: 'Pepe', surname: '', birthdate: '1971-02-03'})
-	#print(result)
-
+    # http://localhost:8080/find_users?name=Luz&surname=Romero&birthdate=2006-08-14
+	
+	#Vemos si los campos de la URL son name, surname o birthdate
+	listaComparar = []
+	querys = request.query_string #Obtenemos todos los campos de la URL
+	querys2 = querys.split('&')
+	for item in querys2:
+		item = item.split('=')
+		listaComparar.append(item[0])
+	valido = True
+	for item in listaComparar:
+		if(item != 'name' and item != 'surname' and item != 'birthdate'):	#Ver si se han introducido otros campos que no son name surname o birthdate
+			valido = False
+			return '''<p>Has introducido un campo no válido</p>'''
+	if(valido):
+		#Obtenemos los campos de la URL y dependiendo de cuales se hayan introducido realizamos la consulta
+		#Lo de capitalize es porque la URL te pone el nombre en minusculas y si no lo pones con mayuscula Mongo no te lo encuentra(Ej:luz != Luz)
+		nombre = request.query.name
+		apellido = request.query.surname
+		fecha = request.query.birthdate
+		print("Busqueda por nombre", nombre.capitalize(), ", apellido", apellido.capitalize(), ", y fecha", fecha)
+		
+		if(nombre != "" and apellido != "" and fecha != ""):
+			result = collection.find({'name':nombre.capitalize(), 'surname':apellido.capitalize(),'birthdate':fecha})
+		elif(nombre != "" and apellido != "" and fecha == ""):
+			result = collection.find({'name':nombre.capitalize(), 'surname':apellido.capitalize()})
+		elif(nombre != "" and apellido == "" and fecha != ""):
+			result = collection.find({'name':nombre.capitalize(),'birthdate':fecha})
+		elif(nombre == "" and apellido != "" and fecha != ""):
+			result = collection.find({'surname':apellido.capitalize(),'birthdate':fecha})
+		elif(nombre == "" and apellido != "" and fecha == ""):
+			result = collection.find({'surname':apellido.capitalize()})
+		elif(nombre == "" and apellido == "" and fecha != ""):
+			result = collection.find({'birthdate':fecha})
+		elif(nombre != "" and apellido == "" and fecha == ""):
+			result = collection.find({'name':nombre.capitalize()})
+		else:
+			return '''<p>Los tres campos estan vacios</p>'''
+		
+		#Numero de usuarios devueltos por la consulta
+		numElems = 0 
+		for elem in result:
+			numElems = numElems + 1
+		#Datos de la consulta
+		#Para cada elemento del result estos serian los campos de su tabla
+		for elem in result:
+			nombreUsuario = elem['_id']
+			email = elem['email']
+			paginaWeb = elem['webpage']
+			tarjetaCredito = elem['credit_card'] + " " + elem['expire'] + " " + elem['number']
+			hash = elem['password']
+			nombre = elem['name']
+			apellido = elem['surname']
+			direccion = elem['address'] + " " + elem['country'] + " " + elem['zip'] + " " + elem['street'] + elem['num'] 
+			aficiones = elem['likes']
+			fechaNacimiento = elem['birthdate']
+		#Tabla con los datos(faltaria hacer una tabla de todas las subtablas, que no se como se hace)
+		return '''<table>
+			<tr>
+				<th>Nombre de usuario</th> %nombreUsuario
+				<th>E-mail</th>
+				<th>Página web</th>
+				<th>Tarjeta de crédito</th>
+				<th>Hash de contraseña</th>
+				<th>Nombre</th>
+				<th>Apellido</th>
+				<th>Dirección</th>
+				<th>Aficiones</th>
+				<th>Fecha de nacimiento</th>
+			</tr>
+		</table>'''
+		
 @get('/find_email_birthdate')
 def email_birthdate():
 	print("hola")
