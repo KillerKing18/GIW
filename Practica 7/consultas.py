@@ -27,9 +27,9 @@ def find_users():
 
 	#Vemos si los campos de la URL son name, surname o birthdate
 	listaComparar = []
-	querys = request.query_string #Obtenemos todos los campos de la URL
-	querys2 = querys.split('&')
-	for item in querys2:
+	querys = request.query_string.split('&')
+
+	for item in querys:
 		item = item.split('=')
 		listaComparar.append(item[0])
 
@@ -69,7 +69,7 @@ def find_users():
 		output = template("output", Cursor = result, Elementos = result.count())
 		return output
 	else:
-	    return '''<p>No se han encontrado resultados</p>'''
+		return '''<p>No se han encontrado resultados</p>'''
 
 @get('/find_email_birthdate')
 def email_birthdate():
@@ -114,9 +114,9 @@ def find_country_likes_limit_sorted():
 	orden = request.query.ord 
 
 	if(pais != "" and likes != "" and limit != "" and orden == "asc"):
-		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort({'birthdate':1}).limit(limit)
+		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort([("birthdate.1", 1)]).limit(int(limit))
 	elif(pais != "" and likes != "" and limit != "" and orden == "desc"):
-		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort({'birthdate':-1}).limit(limit)
+		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort([("birthdate.1", -1)]).limit(int(limit))
 	else:
 		return '''<p>Has introducido mal un campo</p>'''
 
@@ -127,19 +127,37 @@ def find_country_likes_limit_sorted():
 		 return '''<p>No se han encontrado resultados</p>'''
 
 
-
 @get('/find_birth_month')
 def find_birth_month():
-	print("hola")
-  # http://localhost:8080/find_birth_month?month=abril
+	# http://localhost:8080/find_birth_month?month=abril
+	
+	#Vemos si el campo de la URL es month
+	listaComparar = []
+	querys = request.query_string.split('&')
 
-	#Datos de la consulta
-	#Para cada elemento del result estos serian los campos de su tabla
+	for item in querys:
+		item = item.split('=')
+		listaComparar.append(item[0])
+
+	for item in listaComparar:
+		if(item != 'month'):
+			if(item == ''):
+				 return '''<p> Campos vacios! </p>'''
+			else:
+			       	return '''<p>Has introducido mal el campo {{item}}</p>'''
+
+	nacimiento = request.query.month
+
+	if(nacimiento != ""): #TODO
+		result = collection.find({'birthdate.1':nacimiento}).sort([("birthdate.0", 1), ("birthdate.1", 1), ("birthdate.2", 1)])
+	else:
+		return '''<p>Error! Vacio</p>'''
+
 	if result.count() > 0:
-		output = template("output4", Cursor = result, Elementos = result.count())
+		output = template("output", Cursor = result, Elementos = result.count())
 		return output
 	else:
-		return '''<p>No se han encontrado resultados</p>'''
+		 return '''<p>No se han encontrado resultados</p>'''
 
 
 @get('/find_likes_not_ending')
@@ -185,4 +203,5 @@ def esBisiesto(year):
 # NO MODIFICAR LA LLAMADA INICIAL #
 ###################################
 if __name__ == "__main__":
-    run(host = 'localhost', port = 8080, debug = True)
+	run(host = 'localhost', port = 8080, debug = True)
+
