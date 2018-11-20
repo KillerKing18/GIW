@@ -167,9 +167,12 @@ def find_likes_not_ending():
 	
 	# http://localhost:8080/find_likes_not_ending?ending=s
 	
-	sufijo = request.query['ending'] #Obtenemos el campo de la URL
+	import re
 
-	result = collection.find({'likes': {"$not": /ing$/i}})
+	sufijo = request.query['ending'] #Obtenemos el campo de la URL
+	sufijo = "/" + sufijo + "$/i"
+
+	result = collection.find({'likes': {"$not": re.compile(sufijo)}})
 	
 	if result.count() > 0:
 		output = template("output", Cursor = result, Elementos = result.count())
