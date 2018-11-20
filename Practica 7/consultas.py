@@ -111,12 +111,14 @@ def find_country_likes_limit_sorted():
 	pais = request.query.country.capitalize()
 	likes = request.query.likes
 	limit = request.query.limit
-	orden = request.query.ord 
+	orden = request.query.ord
+
+	likes = likes.split(",")
 
 	if(pais != "" and likes != "" and limit != "" and orden == "asc"):
-		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort([("birthdate.1", 1)]).limit(int(limit))
+		result = collection.find({'address.country': pais, 'likes': {"$all" :likes}}).sort([("birthdate", 1)]).limit(int(limit))
 	elif(pais != "" and likes != "" and limit != "" and orden == "desc"):
-		result = collection.find({'address.country': pais, likes: {"$all" :[likes]}}).sort([("birthdate.1", -1)]).limit(int(limit))
+		result = collection.find({'address.country': pais, 'likes': {"$all" :likes}}).sort([("birthdate", -1)]).limit(int(limit))
 	else:
 		return '''<p>Has introducido mal un campo</p>'''
 
@@ -148,8 +150,8 @@ def find_birth_month():
 
 	nacimiento = request.query.month
 
-	if(nacimiento != ""): #TODO
-		result = collection.find({'birthdate.1':nacimiento}).sort([("birthdate.0", 1), ("birthdate.1", 1), ("birthdate.2", 1)])
+	if(nacimiento != ""): 
+		result = collection.find({'birthdate.1':nacimiento}).sort([("birthdate", 1)])
 	else:
 		return '''<p>Error! Vacio</p>'''
 
@@ -162,14 +164,15 @@ def find_birth_month():
 
 @get('/find_likes_not_ending')
 def find_likes_not_ending():
-	print("hola")
+	
 	# http://localhost:8080/find_likes_not_ending?ending=s
+	
 	sufijo = request.query['ending'] #Obtenemos el campo de la URL
-	#result = collection.find({'likes': {"$not": /sufijo$/i}})
-	#Datos de la consulta
-	#Para cada elemento del result estos serian los campos de su tabla
+
+	result = collection.find({'likes': {"$not": /ing$/i}})
+	
 	if result.count() > 0:
-		output = template("output5", Cursor = result, Elementos = result.count())
+		output = template("output", Cursor = result, Elementos = result.count())
 		return output
 	else:
 		return '''<p>No se han encontrado resultados</p>'''
@@ -184,6 +187,7 @@ def find_leap_year():
 	listaAux = []
 	#Consulta de mongo
 	result = collection.find({'credit_card.expire.year': expire})	#,{esBisiesto('birthdate'[:4]): True })
+	
 	for elem in result:
 		fecha = elem['birthdate'][:4] #Cogemos solo el año
 		if esBisiesto(fecha): 
