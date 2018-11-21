@@ -150,8 +150,37 @@ def find_birth_month():
 
 	nacimiento = request.query.month
 
+	if(nacimiento == "enero"):
+		nacimiento = 1
+	elif(nacimiento == "febrero"):
+		nacimiento = 2
+	elif(nacimiento == "marzo"):
+		nacimiento = 3
+	elif(nacimiento == "abril"):
+		nacimiento = 4
+	elif(nacimiento == "mayo"):
+		nacimiento = 5
+	elif(nacimiento == "junio"):
+		nacimiento = 6
+	elif(nacimiento == "julio"):
+		nacimiento = 7
+	elif(nacimiento == "agosto"):
+		nacimiento = 8
+	elif(nacimiento == "septiembre"):
+		nacimiento = 9
+	elif(nacimiento == "octubre"):
+		nacimiento = 10
+	elif(nacimiento == "noviembre"):
+		nacimiento = 11
+	elif(nacimiento == "diciembre"):
+		nacimiento = 12
+	else:
+		return '''<p>NO es un mes correcto!</p>'''
+
+	nacimiento = "/" + str(nacimiento) + "/"
+
 	if(nacimiento != ""): 
-		result = collection.find({'birthdate.1':nacimiento}).sort([("birthdate", 1)])
+		result = collection.find({'birthdate': nacimiento}).sort([("birthdate", 1)])
 	else:
 		return '''<p>Error! Vacio</p>'''
 
@@ -170,7 +199,7 @@ def find_likes_not_ending():
 	import re
 
 	sufijo = request.query['ending'] #Obtenemos el campo de la URL
-	sufijo = "/" + sufijo + "$/i"
+	sufijo = sufijo + "$"
 
 	result = collection.find({'likes': {"$not": re.compile(sufijo)}})
 	
@@ -211,4 +240,3 @@ def esBisiesto(year):
 ###################################
 if __name__ == "__main__":
 	run(host = 'localhost', port = 8080, debug = True)
-
