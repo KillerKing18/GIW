@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 ##
-## Carlos Bilbao, Mario Bocos, Álvaro López y David Élbez declaramos que esta soluci´on es fruto exclusivamente
+## Carlos Bilbao, Mario Bocos, Álvaro López y David Élbez declaramos que esta solución es fruto exclusivamente
 ## de nuestro trabajo personal. No hemos sido ayudados por ninguna otra persona ni hemos
-## obtenido la soluci´on de fuentes externas, y tampoco hemos compartido nuestra soluci´on
-## con nadie. Declaramos adem´as que no hemos realizado de manera deshonesta ninguna otra
-## actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de los dem´as.
+## obtenido la solución de fuentes externas, y tampoco hemos compartido nuestra solución
+## con nadie. Declaramos además que no hemos realizado de manera deshonesta ninguna otra
+## actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de los demás.
 ##
 import pymongo
 from pymongo import MongoClient
@@ -27,6 +27,7 @@ def find_users():
 
 	#Vemos si los campos de la URL son name, surname o birthdate
 	listaComparar = []
+	listaErroneos = []
 	querys = request.query_string.split('&')
 
 	for item in querys:
@@ -38,8 +39,10 @@ def find_users():
 			if(item == ''):
 				return '''<p> Campos vacios! </p>'''
 			else:
-				return '''<p>Has introducido mal el campo {{item}}</p>'''
-
+				listaErroneos.append(item) #Campo erroneo
+				
+	if(len(listaErroneos) > 0):
+		return template("error", lista = listaErroneos)
 	#Obtenemos los campos de la URL y dependiendo de cuales se hayan introducido realizamos la consulta
 	#Lo de capitalize es porque la URL te pone el nombre en minusculas y si no lo pones con mayuscula Mongo no te lo encuentra(Ej:luz != Luz)
 	nombre = request.query.name.capitalize()
@@ -64,12 +67,7 @@ def find_users():
 		return '''<p>Error! Vacio</p>'''
 
 	#Datos de la consulta
-	#Para cada elemento del result estos serian los campos de su tabla
-	if result.count() > 0:
-		output = template("output", Cursor = result, Elementos = result.count())
-		return output
-	else:
-		return '''<p>No se han encontrado resultados</p>'''
+	return template("output", Cursor = result, Elementos = result.count())
 
 @get('/find_email_birthdate')
 def email_birthdate():
@@ -82,52 +80,28 @@ def email_birthdate():
 	result = collection.find({'birthdate': {"$gte":fechaInicio, "$lte":fechaFin}})
 
     # http://localhost:8080/find_email_birthdate?from=1973-01-01&to=1990-12-31
-	if result.count() > 0:
-		output = template("output2", Cursor = result, Elementos = result.count())
-		return output
-	else:
-		return '''<p>No se han encontrado resultados</p>'''
+	
+	return template("output2", Cursor = result, Elementos = result.count())
 
 @get('/find_country_likes_limit_sorted')
 def find_country_likes_limit_sorted():
     
 	#http://localhost:8080/find_country_likes_limit_sorted?country=Irlanda&likes=movies,animals&limit=4&ord=asc
-
-	listaComparar = []
-	querys = request.query_string.split('&') #Obtenemos todos los campos de la URL
-
-	for item in querys:
-		item = item.split('=')
-		listaComparar.append(item[0])
-
-	for item in listaComparar:
-		print(item)
-		if(item != 'country' and item != 'likes' and item != 'limit' and item != 'ord'):
-			if(item == ''):
-				return '''<p> Campos vacios! </p>'''
-			else:
-				return '''<p>Has introducido mal el campo {{item}}</p>'''
-
+	
 	pais = request.query.country.capitalize()
 	likes = request.query.likes
 	limit = request.query.limit
 	orden = request.query.ord
 
 	likes = likes.split(",")
-
-	if(pais != "" and likes != "" and limit != "" and orden == "asc"):
+	print (likes)
+	if(orden == "asc"):
 		result = collection.find({'address.country': pais, 'likes': {"$all" :likes}}).sort([("birthdate", 1)]).limit(int(limit))
-	elif(pais != "" and likes != "" and limit != "" and orden == "desc"):
+	elif(orden == "desc"):
 		result = collection.find({'address.country': pais, 'likes': {"$all" :likes}}).sort([("birthdate", -1)]).limit(int(limit))
-	else:
-		return '''<p>Has introducido mal un campo</p>'''
 
-	if result.count() > 0:
-		output = template("output", Cursor = result, Elementos = result.count())
-		return output
-	else:
-		 return '''<p>No se han encontrado resultados</p>'''
-
+		
+	return template("output", Cursor = result, Elementos = result.count())
 
 @get('/find_birth_month')
 def find_birth_month():
@@ -135,6 +109,7 @@ def find_birth_month():
 	
 	#Vemos si el campo de la URL es month
 	listaComparar = []
+	listaErroneos = []
 	querys = request.query_string.split('&')
 
 	for item in querys:
@@ -144,10 +119,13 @@ def find_birth_month():
 	for item in listaComparar:
 		if(item != 'month'):
 			if(item == ''):
-				 return '''<p> Campos vacios! </p>'''
+				return '''<p> Campos vacios! </p>'''
 			else:
-			       	return '''<p>Has introducido mal el campo {{item}}</p>'''
-
+				listaErroneos.append(item)
+			      
+	if(len(listaErroneos) > 0):
+		return error(lista = listaErroneos)
+	 
 	nacimiento = request.query.month
 
 	if(nacimiento == "enero"):
@@ -177,18 +155,8 @@ def find_birth_month():
 	else:
 		return '''<p>NO es un mes correcto!</p>'''
 
-	nacimiento = "/" + str(nacimiento) + "/"
-
-	if(nacimiento != ""): 
-		result = collection.find({'birthdate': nacimiento}).sort([("birthdate", 1)])
-	else:
-		return '''<p>Error! Vacio</p>'''
-
-	if result.count() > 0:
-		output = template("output", Cursor = result, Elementos = result.count())
-		return output
-	else:
-		 return '''<p>No se han encontrado resultados</p>'''
+	result = collection.find({'birthdate':{"$regex": '^nacimiento^'}}).sort([("birthdate", 1)])
+	return template("output", Cursor = result, Elementos = result.count())
 
 
 @get('/find_likes_not_ending')
@@ -199,15 +167,11 @@ def find_likes_not_ending():
 	import re
 
 	sufijo = request.query['ending'] #Obtenemos el campo de la URL
+	sufijo = sufijo.lower()
 	sufijo = sufijo + "$"
 
 	result = collection.find({'likes': {"$not": re.compile(sufijo)}})
-	
-	if result.count() > 0:
-		output = template("output", Cursor = result, Elementos = result.count())
-		return output
-	else:
-		return '''<p>No se han encontrado resultados</p>'''
+	return template("output", Cursor = result, Elementos = result.count())
 
 
 @get('/find_leap_year')
@@ -218,14 +182,13 @@ def find_leap_year():
 	expire = request.query.exp
 	listaAux = []
 	#Consulta de mongo
-	result = collection.find({'credit_card.expire.year': expire})	#,{esBisiesto('birthdate'[:4]): True })
+	result = collection.find({'credit_card.expire.year': expire})
 	
 	for elem in result:
 		fecha = elem['birthdate'][:4] #Cogemos solo el año
 		if esBisiesto(fecha): 
 			listaAux.append(elem)
 	#Datos de la consulta
-	#Para cada elemento del result estos serian los campos de su tabla
 	if len(listaAux) > 0:
 		output = template("output", Cursor = listaAux, Elementos = len(listaAux))
 		return output
