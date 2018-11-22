@@ -106,7 +106,6 @@ def find_country_likes_limit_sorted():
 @get('/find_birth_month')
 def find_birth_month():
 	# http://localhost:8080/find_birth_month?month=abril
-	
 	#Vemos si el campo de la URL es month
 	listaComparar = []
 	listaErroneos = []
@@ -127,7 +126,7 @@ def find_birth_month():
 		return error(lista = listaErroneos)
 	 
 	nacimiento = request.query.month
-
+	
 	if(nacimiento == "enero"):
 		nacimiento = 1
 	elif(nacimiento == "febrero"):
@@ -154,8 +153,14 @@ def find_birth_month():
 		nacimiento = 12
 	else:
 		return '''<p>NO es un mes correcto!</p>'''
-
-	result = collection.find({'birthdate':{"$regex": '^nacimiento^'}}).sort([("birthdate", 1)])
+	
+	#result = collection.find({'birthdate':{"$regex": '^nacimiento^'}}).sort([("birthdate", 1)])
+	import re
+	if nacimiento < 10:
+		month = "-0" + str(nacimiento) + "-"
+	else:
+		month = "-" + str(nacimiento) + "-"
+	result = collection.find({'birthdate': re.compile(month)}).sort([("birthdate", 1)])
 	return template("output", Cursor = result, Elementos = result.count())
 
 
