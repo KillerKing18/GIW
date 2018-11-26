@@ -6,7 +6,7 @@ class Usuario(Document):
 	nombre = StringField(required=True)
 	primer_apellido = StringField(required=True)
 	segundo_apellido = StringField()
-	fecha_nacimiento = DateTimeField(required=True)
+	fecha_nacimiento = DateTimeField(min_value=1920,required=True)
 	ultimos_accesos = ListField(ComplexDateTimeField()) # Hacer de longitud 10
 	tarjetas_credito = ListField(EmbeddedDocumentField(Tarjeta_Credito))
 	pedidos = ListField(ReferenceField(Pedido, reverse_delete_rule = PULL))
@@ -19,8 +19,8 @@ class Tarjeta_Credito(EmbeddedDocument):
 	codigo_verificacion = StringField(required=True, min_length = 3, max_length = 3, regex = "[0-9]")
 	
 class Pedido(Document):
-	precio_total = IntField(required=True)
-	fecha = ComplexDateTimeField(required=True)
+	precio_total = IntField(min_value=1,required=True)
+	fecha = ComplexDateTimeField(min_value=2018,required=True)
 	lista_lineas = ListField(EmbeddedDocumentField(Linea_Pedido, required=True))
 	
 class Linea_Pedido(EmbeddedDocument):
