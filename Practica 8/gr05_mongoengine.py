@@ -12,12 +12,12 @@ connect('giw_mongoengine')
 class Producto(Document):
 	codigo_barras = StringField(required=True, unique=True)
 	nombre = StringField(required=True)
-	categoria_principal = IntField(required=True) # Numero natural
-	categorias_secundarias = ListField(IntField) # Numeros naturales
+	categoria_principal = IntField(required=True, min_value = 0)
+	categorias_secundarias = ListField(IntField(min_value = 0))
 
 	def clean(self):
 		# Debe tener el formato EAN_13
-		if(isnotEANvalid(self.codigo_barras)): # Esquema punto 5
+		if(isnotEANValid(self.codigo_barras)): # Esquema punto 5
 			raise ValidationError("El codigo de barras no tiene el formato adecuado (EAN 13)")
 
 		if(len(self.categorias_secundarias) > 0 and self.categorias_secundarias[0] != self.categoria_principal): # Esquema punto 6
@@ -30,11 +30,12 @@ class Linea_Pedido(EmbeddedDocument):
 	precio_linea = IntField(required=True)
 	producto = ReferenceField(Producto, required=True)
 
-	def clean(self):
+	def es_valido(self):
 		if(self.cantidad * self.precio_producto != self.precio_linea): # Esquema punto 3
 			raise ValidationError("El precio no coincide con la muliplicacion de cantidades y precio")
-		if(self.nombre != producto.nombre): # Esquema punto 4
+		if(self.nombre != self.producto.nombre): # Esquema punto 4
 			raise ValidationError("No coinciden los nombres de producto y linea de producto")
+		return True
 
 class Pedido(Document):
 	precio_total = FloatField(min_value=1,required=True)
@@ -126,18 +127,27 @@ def isnotValid(DNI):
 
 def sumPrec(lista):
 	sum = 0
-	# Sumamos los precios de cada elemento
-	for i in lista:
+	for i in lista:	# Sumamos los precios de cada elemento
 		sum = sum + i.precio_linea
 	return sum
 
 def isnotEANValid(ean):
 	# TODO - Codigo Python del Wiki?
-	return True
+	return False
 
+	
+###### INSERCIONES ######
 
-# INSERCIONES #
-
-producto1 = Producto("123456789", "Toalla", 4, [5,6])
+producto1 = Producto(codigo_barras = "123456789", nombre = "Toalla", categoria_principal = 4, categorias_secundarias=[4, 5, 6])
 producto1.save()
+linea_pedido1 = Linea_Pedido(cantidad = 4, precio_producto = 2, nombre = "Toalla", precio_linea = 8, producto = producto1)
+if linea_pedido1.es_valido():
+	print("Valido")
+else:
+	print("Invalido")
+# Hacer save sobre EmbeddedDocument no tiene efecto, asi que que pasa con clean
 
+
+
+#TODO 
+#	Formato EAN_13
