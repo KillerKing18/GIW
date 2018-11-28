@@ -10,17 +10,17 @@ from mongoengine import *
 connect('giw_mongoengine')
 
 class Producto(Document):
-	codigo_barras = StringField(required=True, unique=True)
+	codigo_barras = StringField(required=True, unique=True, min_length = 13, max_length = 13)
 	nombre = StringField(required=True)
 	categoria_principal = IntField(required=True, min_value = 0)
 	categorias_secundarias = ListField(IntField(min_value = 0))
 
 	def clean(self):
 		# Debe tener el formato EAN_13
-		if(isnotEANValid(self.codigo_barras)): # Esquema punto 5
+		if(isnotEANValid(self.codigo_barras)):	# Validacion 5
 			raise ValidationError("El codigo de barras no tiene el formato adecuado (EAN 13)")
 
-		if(len(self.categorias_secundarias) > 0 and self.categorias_secundarias[0] != self.categoria_principal): # Esquema punto 6
+		if(len(self.categorias_secundarias) > 0 and self.categorias_secundarias[0] != self.categoria_principal):	# Validacion 6
 			raise ValidationError("La categoria principal debe ser la primera en la lista de categorias secundarias")
 
 class Linea_Pedido(EmbeddedDocument):
@@ -31,9 +31,9 @@ class Linea_Pedido(EmbeddedDocument):
 	producto = ReferenceField(Producto, required=True)
 
 	def clean(self):
-		if(self.cantidad * self.precio_producto != self.precio_linea): # Esquema punto 3
+		if(self.cantidad * self.precio_producto != self.precio_linea):	# Validacion 3
 			raise ValidationError("El precio no coincide con la muliplicacion de cantidades y precio")
-		if(self.nombre != self.producto.nombre): # Esquema punto 4
+		if(self.nombre != self.producto.nombre):	# Validacion 4
 			raise ValidationError("No coinciden los nombres de producto y linea de producto")
 		return True
 
@@ -44,10 +44,11 @@ class Pedido(Document):
 
 	def clean(self):
 		if(self.precio_total != sumPrec(self.lista_lineas)): # La suma de los pedidos ser igual al total
-			raise ValidationError("La suma de los productos no coincide con el precio total") # Esquema punto 2
+			raise ValidationError("La suma de los productos no coincide con el precio total")	# Validacion 2
 
 class Tarjeta_Credito(EmbeddedDocument):
 	nombre = StringField(required=True)
+	# Hacemos los campos numero, mes, anio y codigo StringFields para poder forzar su longitud
 	numero = StringField(required=True, min_length = 16, max_length = 16, regex = "[0-9]")
 	mes_caducidad = StringField(required=True, min_length = 2, max_length = 2, regex = "[0-9]")
 	anio_caducidad = StringField(required=True, min_length = 2, max_length = 2, regex = "[0-9]")
@@ -61,7 +62,7 @@ class Usuario(Document):
 	fecha_nacimiento = DateTimeField(required=True)
 	ultimos_accesos = ListField(ComplexDateTimeField())
 	tarjetas_credito = ListField(EmbeddedDocumentField(Tarjeta_Credito))
-	pedidos = ListField(ReferenceField(Pedido, reverse_delete_rule = PULL)) # Articulo punto 7 -> reverse_delete_rule
+	pedidos = ListField(ReferenceField(Pedido, reverse_delete_rule = PULL))	# Validacion 7
 
 	def clean(self):
 		if(len(self.ultimos_accesos) > 10): # No puede haber mas de 10
@@ -69,7 +70,7 @@ class Usuario(Document):
 		if(isnotValid(self.DNI)): # La funcion auxiliar comprueba que se cumple el formato del DNI nacional
 			raise ValidationError("El DNI no tiene el formato correcto") # Esquema punto 1
 
-def isnotValid(DNI):
+def isnotValid(DNI):	# Validacion 1
 	num = DNI[:8]
 	num = int(num) % 23
 
@@ -132,19 +133,33 @@ def sumPrec(lista):
 	return sum
 
 def isnotEANValid(ean):
-	return False
+	digit = int(ean[12])
+	ean = ean[:12]
+	int(str(ean)[::-1])
+	i = 0
+	suma = 0
+	for number in ean:
+		if i % 2 == 0:
+			suma = suma + int(number)
+		else:
+			suma = suma + (3 * int(number))
+		i = i + 1
+	if (10 - (suma % 10)) % 10 == digit:
+		return False
+	else:
+		return True
 
 def insertar():
 	# Usuario 1
-	producto1a = Producto(codigo_barras = "123456789", nombre = "Toalla", categoria_principal = 4, categorias_secundarias=[4, 5, 6])
+	producto1a = Producto(codigo_barras = "1234567890418", nombre = "Toalla", categoria_principal = 4, categorias_secundarias=[4, 5, 6])
 	producto1a.save()
-	producto2a = Producto(codigo_barras = "987654321", nombre = "Balon", categoria_principal = 3)
+	producto2a = Producto(codigo_barras = "4839205930524", nombre = "Balon", categoria_principal = 3)
 	producto2a.save()
-	producto3a = Producto(codigo_barras = "ABCDEFGHI", nombre = "Sombrilla", categoria_principal = 1, categorias_secundarias=[1, 2, 3])
+	producto3a = Producto(codigo_barras = "7493019583917", nombre = "Sombrilla", categoria_principal = 1, categorias_secundarias=[1, 2, 3])
 	producto3a.save()
-	producto4a = Producto(codigo_barras = "472958205", nombre = "Helado", categoria_principal = 3, categorias_secundarias=[3, 4, 5])
+	producto4a = Producto(codigo_barras = "4839274829408", nombre = "Helado", categoria_principal = 3, categorias_secundarias=[3, 4, 5])
 	producto4a.save()
-	producto5a = Producto(codigo_barras = "847295837", nombre = "Agua", categoria_principal = 7)
+	producto5a = Producto(codigo_barras = "8491859375920", nombre = "Agua", categoria_principal = 7)
 	producto5a.save()
 	linea_pedido1a = Linea_Pedido(cantidad = 4, precio_producto = 2, nombre = "Toalla", precio_linea = 8, producto = producto1a)
 	linea_pedido2a = Linea_Pedido(cantidad = 10, precio_producto = 5, nombre = "Balon", precio_linea = 50, producto = producto2a)
@@ -161,19 +176,19 @@ def insertar():
 	usuario1.save()
 	
 	# Usuario 2
-	producto1b = Producto(codigo_barras = "843927583", nombre = "Tarjeta Grafica", categoria_principal = 2)
+	producto1b = Producto(codigo_barras = "1958275928477", nombre = "Tarjeta Grafica", categoria_principal = 2)
 	producto1b.save()
-	producto2b = Producto(codigo_barras = "843928573", nombre = "Placa base", categoria_principal = 15, categorias_secundarias=[15, 8, 6])
+	producto2b = Producto(codigo_barras = "8492058275929", nombre = "Placa base", categoria_principal = 15, categorias_secundarias=[15, 8, 6])
 	producto2b.save()
-	producto3b = Producto(codigo_barras = "573950392", nombre = "RAM", categoria_principal = 23, categorias_secundarias=[23, 46, 16])
+	producto3b = Producto(codigo_barras = "0385719483727", nombre = "RAM", categoria_principal = 23, categorias_secundarias=[23, 46, 16])
 	producto3b.save()
-	producto4b = Producto(codigo_barras = "859396038", nombre = "Tornillo", categoria_principal = 12)
+	producto4b = Producto(codigo_barras = "7438294738294", nombre = "Tornillo", categoria_principal = 12)
 	producto4b.save()
-	producto5b = Producto(codigo_barras = "950395732", nombre = "Alicate", categoria_principal = 47, categorias_secundarias=[47, 12])
+	producto5b = Producto(codigo_barras = "5638295372431", nombre = "Alicate", categoria_principal = 47, categorias_secundarias=[47, 12])
 	producto5b.save()
-	producto6b = Producto(codigo_barras = "958305937", nombre = "Martillo", categoria_principal = 17)
+	producto6b = Producto(codigo_barras = "1287452578236", nombre = "Martillo", categoria_principal = 17)
 	producto6b.save()
-	producto7b = Producto(codigo_barras = "853954739", nombre = "Sierra", categoria_principal = 18, categorias_secundarias=[18, 20])
+	producto7b = Producto(codigo_barras = "5362845724349", nombre = "Sierra", categoria_principal = 18, categorias_secundarias=[18, 20])
 	producto7b.save()
 	linea_pedido1b = Linea_Pedido(cantidad = 5, precio_producto = 200, nombre = "Tarjeta Grafica", precio_linea = 1000, producto = producto1b)
 	linea_pedido2b = Linea_Pedido(cantidad = 5, precio_producto = 100, nombre = "Placa base", precio_linea = 500, producto = producto2b)
@@ -190,7 +205,7 @@ def insertar():
 	pedido3b.save()
 	tarjeta1b = Tarjeta_Credito(nombre = "Marcos Martinez", numero = "3859284029184938", mes_caducidad = "05", anio_caducidad = "24", codigo_verificacion = "999")
 	tarjeta2b = Tarjeta_Credito(nombre = "Marcos Martinez", numero = "5948372059382942", mes_caducidad = "07", anio_caducidad = "30", codigo_verificacion = "888")
-	tarjeta3b = Tarjeta_Credito(nombre = "Marcos Martinez", numero = "4837295830593850", mes_caducidad = "12", anio_caducidad = "20", codigo_verificacion = "777")
+	tarjeta3b = Tarjeta_Credito(nombre = "Marcos Martinez", numero = "1837295830593850", mes_caducidad = "12", anio_caducidad = "20", codigo_verificacion = "777")
 	usuario2 = Usuario(DNI = "58204938B", nombre = "Marcos", primer_apellido = "Martinez", fecha_nacimiento = ("1996, 04, 22"), tarjetas_credito = [tarjeta1b, tarjeta2b, tarjeta3b], pedidos = [pedido1b, pedido2b, pedido3b])
 	usuario2.save()
 
@@ -198,9 +213,9 @@ def insertar():
 	usuario3 = Usuario(DNI = "84938293Y", nombre = "Pepe", primer_apellido = "Garcia", fecha_nacimiento = ("1965, 02, 15"))
 	usuario3.save()
 
+insertar()
+	
 #TODO 
-#	5
 #	DNI (regex, extranjeros)
 #	Tarjeta regex
-#	Comprobar valor maximo y minimo para el mes de la tarjeta?
-#	Hacer numeros de la tarjeta StringField o IntField?
+#	Primero llama a la funcion de comprobar el dni y luego comprueba si los campos estan bien
