@@ -25,6 +25,7 @@ actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de 
 		<tr>
 		<th style="font-weight:normal;">{{elem['_id']}}</th>
 		<th style="font-weight:normal;" >{{elem['count']}}</th>
+		<th style="font-weight:normal;" >{{elem['precio']}}</th>
 		<tr>
 	%end	
 	</table>

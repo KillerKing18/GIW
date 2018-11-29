@@ -21,7 +21,7 @@ pedidos = db['pedidos']
 
 #Pedidos:
 #	_id = ObjectId(hex)
-#	lineas = lista de elementos con precio(FloatField), nombre(StringField), total(FLoatFIeld) #		y cantidad (IntField)
+#	lineas = lista de elementos con precio(FloatField), nombre(StringField), total(FLoatFIeld) y cantidad (IntField)
 #	cliente = IntField
 #	total = FloatField
 #Usuarios:
@@ -37,8 +37,8 @@ pedidos = db['pedidos']
 def agg1():
 	n = int(request.query.n)
 	result = usuarios.aggregate([
-		{"$group": {"_id": "$pais", "count": {"$sum":1}}},
-		{"$sort": {"count" : -1, "pais" : 1}},
+		{"$group": {"_id": "$pais", "media": {"$avg":[]}}},
+		{"$sort": {"count" : -1, "_id" : 1}},
 		{"$limit": n}])
 
 	return template("output", Cursor = result)
@@ -51,7 +51,7 @@ def agg2():
 	result = pedidos.aggregate([
 		{"$unwind": "$lineas"},
 		{"$match": {"lineas.precio" : {"$gte" : precio}}},
-		{"$group": {"_id": "$lineas.nombre", "count": {"$sum":"$lineas.cantidad"}}}
+		{"$group": {"_id": "$lineas.nombre", "count": {"$sum":"$lineas.cantidad"}, "precio": {"$first":"$lineas.precio"}}}
 		])
 	return template("output2", Cursor = result)
 
@@ -59,13 +59,24 @@ def agg2():
 @get('/age_range')
 # http://localhost:8080/age_range?min=80
 def agg3():
-    pass
+	min_usuarios = int(request.query.min)
+	result = usuarios.aggregate([
+		{"$group": {"_id": "$pais", "count": {"$sum":1}, "edad_maxima": {"$max":"$edad"}, "edad_minima": {"$min":"$edad"}}},
+		{"$match": {"count" : {"$gte" : min_usuarios}}},
+		{"$addFields": {"rango": {"$subtract": ["$edad_maxima", "$edad_minima"]}}},
+		{"$sort": {"rango" : -1, "_id" : 1}}])
+	
+	return template("output3", Cursor = result)
     
-    
+
 @get('/avg_lines')
 # http://localhost:8080/avg_lines
 def agg4():
-    pass
+	result = usuarios.aggregate([
+		{"$lookup": {"from": "pedidos", "localField":"_id", "foreignField":"cliente", "as":"pedidos"}},
+		{"$group": {"_id": "$pais"}}])
+	#pedidos.lineas.cantidad
+	return template("output4", Cursor = result)
     
     
 @get('/total_country')
