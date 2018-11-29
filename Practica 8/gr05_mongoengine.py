@@ -214,8 +214,3 @@ def insertar():
 	usuario3.save()
 
 insertar()
-	
-#TODO 
-#	DNI (regex, extranjeros)
-#	Tarjeta regex
-#	Primero llama a la funcion de comprobar el dni y luego comprueba si los campos estan bien
