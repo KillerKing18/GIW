@@ -8,7 +8,7 @@ actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de 
 <!DOCTYPE html>
 <html>
 <head>
-<h1>CONSULTA</h1>
+<h1>CONSULTA 3</h1>
 </head>
 <body>
 
@@ -16,8 +16,6 @@ actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de 
                 <tr>
                        <th>Nombre del pais</th>
                        <th>Rango</th>
-					   <th>Edad minima</th>
-                       <th>Edad maxima</th>
                 </tr>
    
 	%count = 0
@@ -26,8 +24,6 @@ actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de 
 		<tr>
 		<th style="font-weight:normal;">{{elem['_id']}}</th>
 		<th style="font-weight:normal;" >{{elem['rango']}}</th>
-		<th style="font-weight:normal;" >{{elem['edad_minima']}}</th>
-		<th style="font-weight:normal;" >{{elem['edad_maxima']}}</th>
 		<tr>
 	%end	
 	</table>

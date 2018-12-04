@@ -8,7 +8,7 @@ actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de 
 <!DOCTYPE html>
 <html>
 <head>
-<h1>CONSULTA</h1>
+<h1>CONSULTA 2</h1>
 </head>
 <body>
 
