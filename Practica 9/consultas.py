@@ -25,7 +25,7 @@ pedidos = db['pedidos']
 #	cliente = IntField
 #	total = FloatField
 #Usuarios:
-#	_id = IntFIeld
+#	_id = IntField
 #	pais = StringField
 #	edad = IntField
 #	nombre = StringField
@@ -69,13 +69,15 @@ def agg3():
 @get('/avg_lines')
 # http://localhost:8080/avg_lines
 def agg4():
-#	result = usuarios.aggregate([
-#		{"$lookup": {"from": "pedidos", "localField":"_id", "foreignField":"cliente", "as":"pedidos"}},
-#		{"$group": {"_id": "$pais"}}])
-#	#pedidos.lineas.cantidad
+	#result = usuarios.aggregate([
+	#	{"$lookup": {"from":"pedidos", "localField":"_id", "foreignField":"cliente", "as":"pedidos_usuario"}},
+	#	{"$unwind": "$pedidos_usuario.lineas"},
+	#	{"$group": {"_id": "$pais", "count": {"$sum":1}}}
+	#	])
+
 #	return template("output4", Cursor = result)
 	pass
-    
+
 @get('/total_country')
 # http://localhost:8080/total_country?c=Alemania
 def agg5():
