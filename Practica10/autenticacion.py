@@ -28,26 +28,22 @@ pimienta = "c6y]s4*u#L3r?tZ{3LYM95'vLq%DfmrF{'gjv[vs:B%!_FP3L)r$-r^;~swKcUabrcap
 # Almacenar las contraseñas en la BBDD de Mongo sin cifrado expone a los usuarios.
 # Para almacenar la contraseña de manera segura en la BBDD guardo ésta de la siguiente manera:
 # El hash de la contraseña (con SHA512) + sal (generación de cadena aleatoria) + pimienta (cadena de texto estática)
-# Además, para evitar Brute Force uso un algoritmo de ralentizado (PBKDF2)
+# Además, quiero evitar Brute Force, y para ello uso un algoritmo de ralentizado (PBKDF2)
 # La función de hashlib se encarga de añadir la sal
-# También genero una semilla en base 32 que usaré para un Time-Based One-Time Password Algorithm (TOTP).
-# TODO
+# También genero una semilla en base 32 que usaré para un Time-Based One-Time Password Algorithm (TOTP) en otro apartado.
 
 def safe(password, sal):
-    encode =  (password + sal).encode('utf-8')
-    safepas = hashlib.sha512(encode).hexdigest()
+    safepas = hashlib.sha512((password + sal + pimienta).encode("utf-8")).hexdigest()
     safepas = bytes(safepas,'utf-8')
-    sal = bytes(sal, 'utf-8')
-    safepas = hashlib.pbkdf2_hmac('sha256', safepas, sal, 100000) # Algoritmo PBKDF2
-    safepas = safepas.decode('utf-8')
-    safepas = safepas + pimienta
-    print("safepas => ", safepas)
+    sal     = bytes(sal, 'utf-8')
+    hashlib.pbkdf2_hmac('sha256', safepas, sal, 100000) # Algoritmo PBKDF2
+    #print("safepas => ", safepas)
     return safepas
 
 @post('/signup')
 def signup():
     query = request.POST
-   # tenemos: name, nickname, country, email, password, password2
+    # tenemos: name, nickname, country, email, password, password2
 
     if(query['password'] != query['password2']):
            return '''<p>Las contraseñas no coinciden</p>'''
@@ -68,15 +64,19 @@ def signup():
 
     return  "Bienvenido usuario " + query['name']
 
-
 @post('/change_password')
 def change_password():
     query = request.POST
 
-    result = collection.find({'name':query['name']})
+    result = collection.find({'name':query['name']}) # He cambiado la petición POST, pasaba el nickname, que no vale!
 
     # El usuario existe en la BBDD y coincide la contraseña
-    if(result.count > 0 and safe(query['old_password'],result['sal']) == safe(result['password'], result['sal'])):
+
+    for val in result: # Only one name
+        prevSal = val['sal']
+        prevPas = val['password']
+
+    if(result.count() > 0 and prevPas == safe(query['old_password'], prevSal)):
         sal = uuid.uuid4().hex # Actualizo sal
         collection.update_one({'name':query['name']},{'$set': {'password': safe(query['new_password'], sal), 'sal': sal}})
         return "La contraseña del usuario " + query['name'] + " ha sido modificada"
@@ -88,8 +88,12 @@ def login():
     query = request.POST
     result = collection.find({'name':query['name']})
 
+    for val in result: # Only one name
+        prevSal = val['sal']
+        prevPas = val['password']
+
     # El usuario existe en la BBDD y coincide la contraseña
-    if(result.count > 0 and safe(query['password'],result['sal']) == safe(result['password'], result['sal'])):
+    if(result.count() > 0 and prevPas == safe(query['password'], prevSal)):
         return "Bienvenido " + query['name']
     else:
         return "Usuario o contraseña incorrectos"
@@ -133,7 +137,7 @@ def signup_totp():
     collection.insert_one(usuario)
 
     path = "otpauth://totp/localhost::8080:signup_totp:" + query['name'] + "secret=" + semilla + "&issuer=" + query['name']
-#    qr path  > qr.png
+    # qr path  > qr.png
     qr = "todo"
 
     return  "nombre = " + query['name'] + " semilla = " + semilla + " QR = " + qr
