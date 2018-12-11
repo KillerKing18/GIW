@@ -145,6 +145,9 @@ def signup_totp():
     collection.insert_one(usuario)
 
     #TODO guardar el qr como una imagen
+    #fh = open("qr.png", "wb")
+    #fh.write(qr)
+    #fh.close()
 
     return  "<p>nombre = " + query['name'] + " semilla = " + semilla + " </p><p></p><img src='qr.png' alt='QR'>" 
 
