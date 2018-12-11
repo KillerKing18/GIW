@@ -8,16 +8,19 @@
 ## actividad que pueda mejorar nuestros resultados ni perjudicar los resultados de los demás.
 ##
 
-import pymongo, hashlib, uuid, hashlib, pyotp, base64,qrcode
-#pillow
+import pymongo, hashlib, uuid, hashlib, pyotp, base64,qrcode, pyqrcode
 from pymongo import MongoClient
 from bottle import post, get, route, run, template, request
+from passlib.totp import TOTP, generate_secret
 
 mongoclient = MongoClient()
 db = mongoclient.giw
 collection = db['usuarios']
 
 pimienta = "c6y]s4*u#L3r?tZ{3LYM95'vLq%DfmrF{'gjv[vs:B%!_FP3L)r$-r^;~swKcUabrcapata89"
+
+secret = generate_secret()
+TotpFactory = TOTP.using(secrets={"1":secret})
 
 ##############
 # APARTADO 1 #
@@ -102,7 +105,7 @@ def login():
 # APARTADO 2 # TODO http://blog.contraslash.com/doble-autenticacion-con-python/
 ##############
 
-#
+# TODO
 # Explicación detallada de cómo se genera la semilla aleatoria, cómo se construye
 # la URL de registro en Google Authenticator y cómo se genera el código QR
 # Necesito una semilla (o seed) en base 32, y para eso uso pyotp, luego preguntar por los números actuales con totp.now().
@@ -117,30 +120,33 @@ def signup_totp():
     query = request.POST
     # tenemos: name, nickname, country, email, password, password2
 
+
     if(query['password'] != query['password2']):
-          return '''<p>Las contraseñas no coinciden</p>'''
+           return '''<p>Las contraseñas no coinciden</p>'''
 
     if(query['nickname'] != ""):
-         result = collection.find({'nickname':query['nickname']})
-    if(result.count() > 0):
-          return '''<p>El alias de usuario ya existe</p>'''
+        result = collection.find({'nickname':query['nickname']})
+        if(result.count() > 0):
+              return '''<p>El alias de usuario ya existe</p>'''
     else:
         return '''<p>No puedes usar un nombre vacio</p>'''
 
     sal = uuid.uuid4().hex
     safepas = safe(query['password'], sal)
-    semilla = base64.b32encode(safepas.encode()).decode()
-    #totp = pyotp.TOTP(SECRET_KEY_BASE_32) y totp.now() para un momento dado
+    semilla = base64.b32encode(safepas).decode()
+
+    totp = TotpFactory.new()
+    uri = totp.to_uri(issuer="localhost",label="username")
+    qr = pyqrcode.create(uri)
+    qr = qr.terminal(quiet_zone = 1)
 
     usuario = {'name':query['name'],'nickname':query['nickname'],'country':query['country'],
         'email':query['email'], 'password':safepas, 'sal':sal, 'semilla': semilla}
     collection.insert_one(usuario)
 
-    path = "otpauth://totp/localhost::8080:signup_totp:" + query['name'] + "secret=" + semilla + "&issuer=" + query['name']
-    # qr path  > qr.png
-    qr = "todo"
+    #TODO guardar el qr como una imagen
 
-    return  "nombre = " + query['name'] + " semilla = " + semilla + " QR = " + qr
+    return  "<p>nombre = " + query['name'] + " semilla = " + semilla + " </p><p></p><img src='qr.png' alt='QR'>" 
 
 @post('/login_totp')
 def login_totp():
