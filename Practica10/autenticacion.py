@@ -48,8 +48,8 @@ def signup():
     if(query['password'] != query['password2']):
            return '''<p>Las contraseñas no coinciden</p>'''
 
-    if(query['name'] != ""):
-        result = collection.find({'name':query['name']})
+    if(query['nickname'] != ""):
+        result = collection.find({'nickname':query['nickname']})
         if(result.count() > 0):
               return '''<p>El alias de usuario ya existe</p>'''
     else:
@@ -68,7 +68,7 @@ def signup():
 def change_password():
     query = request.POST
 
-    result = collection.find({'name':query['name']}) # He cambiado la petición POST, pasaba el nickname, que no vale!
+    result = collection.find({'nickname':query['nickname']}) 
 
     # El usuario existe en la BBDD y coincide la contraseña
 
@@ -78,15 +78,15 @@ def change_password():
 
     if(result.count() > 0 and prevPas == safe(query['old_password'], prevSal)):
         sal = uuid.uuid4().hex # Actualizo sal
-        collection.update_one({'name':query['name']},{'$set': {'password': safe(query['new_password'], sal), 'sal': sal}})
-        return "La contraseña del usuario " + query['name'] + " ha sido modificada"
+        collection.update_one({'nickname':query['nickname']},{'$set': {'password': safe(query['new_password'], sal), 'sal': sal}})
+        return "La contraseña del usuario " + query['nickname'] + " ha sido modificada"
     else:
         return "Usuario o contraseña incorrectos"
 
 @post('/login')
 def login():
     query = request.POST
-    result = collection.find({'name':query['name']})
+    result = collection.find({'nickname':query['nickname']})
 
     for val in result: # Only one name
         prevSal = val['sal']
@@ -94,7 +94,7 @@ def login():
 
     # El usuario existe en la BBDD y coincide la contraseña
     if(result.count() > 0 and prevPas == safe(query['password'], prevSal)):
-        return "Bienvenido " + query['name']
+        return "Bienvenido " + query['nickname']
     else:
         return "Usuario o contraseña incorrectos"
 
@@ -120,8 +120,8 @@ def signup_totp():
     if(query['password'] != query['password2']):
           return '''<p>Las contraseñas no coinciden</p>'''
 
-    if(query['name'] != ""):
-         result = collection.find({'name':query['name']})
+    if(query['nickname'] != ""):
+         result = collection.find({'nickname':query['nickname']})
     if(result.count() > 0):
           return '''<p>El alias de usuario ya existe</p>'''
     else:
