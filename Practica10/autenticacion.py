@@ -12,6 +12,7 @@ import pymongo, hashlib, uuid, hashlib, pyotp, base64,qrcode, pyqrcode
 from pymongo import MongoClient
 from bottle import post, get, route, run, template, request
 from passlib.totp import TOTP, generate_secret
+from passlib.exc import TokenError, MalformedTokenError
 
 mongoclient = MongoClient()
 db = mongoclient.giw
@@ -21,6 +22,8 @@ pimienta = "c6y]s4*u#L3r?tZ{3LYM95'vLq%DfmrF{'gjv[vs:B%!_FP3L)r$-r^;~swKcUabrcap
 
 secret = generate_secret()
 TotpFactory = TOTP.using(secrets={"1":secret})
+
+totpCounter = 0
 
 ##############
 # APARTADO 1 #
@@ -33,7 +36,7 @@ TotpFactory = TOTP.using(secrets={"1":secret})
 # El hash de la contraseña (con SHA512) + sal (generación de cadena aleatoria) + pimienta (cadena de texto estática)
 # Además, quiero evitar Brute Force, y para ello uso un algoritmo de ralentizado (PBKDF2)
 # La función de hashlib se encarga de añadir la sal
-# También genero una semilla en base 32 que usaré para un Time-Based One-Time Password Algorithm (TOTP) en otro apartado.
+#.
 
 def safe(password, sal):
     safepas = hashlib.sha512((password + sal + pimienta).encode("utf-8")).hexdigest()
@@ -102,17 +105,14 @@ def login():
         return "Usuario o contraseña incorrectos"
 
 ##############
-# APARTADO 2 # TODO http://blog.contraslash.com/doble-autenticacion-con-python/
+# APARTADO 2 # IDEAS -> http://blog.contraslash.com/doble-autenticacion-con-python/
 ##############
 
-# TODO
-# Explicación detallada de cómo se genera la semilla aleatoria, cómo se construye
-# la URL de registro en Google Authenticator y cómo se genera el código QR
-# Necesito una semilla (o seed) en base 32, y para eso uso pyotp, luego preguntar por los números actuales con totp.now().
-# Para generar el QR tengo que llamar a la URL de Google Authenticator con los parámetros del usuario y la semilla y generar
-# el propio QR gracias a pillow y qrcode
-# Mi QR podrá ya ser leido por Google Authenticator
-# Info útil -> https://passlib.readthedocs.io/en/stable/narr/totp-tutorial.html
+# 
+#  Genero una semilla en base 32 que usaré para un Time-Based One-Time Password Algorithm (TOTP).
+#  Se la proporciono al usuario para que al hacer login pueda darme el valor temporal,
+#  si este es correcto (además de la contraseña) le daré acceso al usuario.
+#  Info útil -> https://passlib.readthedocs.io/en/stable/narr/totp-tutorial.html
 #
 
 @post('/signup_totp')
@@ -138,30 +138,41 @@ def signup_totp():
     totp = TotpFactory.new()
     uri = totp.to_uri(issuer="localhost",label="username")
     qr = pyqrcode.create(uri)
-    qr = qr.terminal(quiet_zone = 1)
+    print(qr.terminal())
+    qr = qr.text()
 
     usuario = {'name':query['name'],'nickname':query['nickname'],'country':query['country'],
-        'email':query['email'], 'password':safepas, 'sal':sal, 'semilla': semilla}
+        'email':query['email'], 'password':safepas, 'sal':sal, 'semilla': semilla, 'key': qr}
     collection.insert_one(usuario)
 
-    #TODO guardar el qr como una imagen
-    #fh = open("qr.png", "wb")
-    #fh.write(qr)
-    #fh.close()
-
-    return  "<p>nombre = " + query['name'] + " semilla = " + semilla + " </p><p></p><img src='qr.png' alt='QR'>" 
+    return  "<p>nombre = " + query['name'] + "<p> semilla = " + semilla + "</p><b> REVISA LA TERMINAL PARA VER EL QR </b>" 
 
 @post('/login_totp')
 def login_totp():
     query = request.POST
-    result = collection.find({'name':query['name']})
-    totp = pyotp.TOTP(result['semilla'])
+    result = collection.find({'nickname':query['nickname']})
 
-    # El usuario existe en la BBDD y coincide la contraseña
-    if(result.count > 0 and safe(query['password'],result['sal']) == safe(result['password'], result['sal']) and totp.now() == query['semilla']):
-        return "Bienvenido " + query['name']
+    for val in result: # Only one name
+        prevSal = val['sal']
+        prevPas = val['password']
+        source  =  val['key']
+
+    token = query['totp']
+    last_counter = totpCounter
+
+    try:
+        #match = TotpFactory.verify(token, source, last_counter=last_counter)
+        pass #TODO
+    except MalformedTokenError as err:
+        return '<p>malformed token!</p>'
+    except TokenError as err:
+        return '<p>Invalid or reused token </p>'
     else:
-        return "Usuario o contraseña incorrectos"
+        # El usuario existe en la BBDD y coincide la contraseña
+        if(result.count() > 0 and prevPas == safe(query['password'], prevSal)):
+            return "Bienvenido " + query['nickname']
+        else:
+            return "Usuario o contraseña incorrectos"
 
 if __name__ == "__main__":
     # NO MODIFICAR LOS PARÁMETROS DE run()
